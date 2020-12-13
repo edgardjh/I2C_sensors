@@ -37,7 +37,11 @@
 #include "utils/uartstdio.h"
 #include "bsp.h"
 
-// core initialization
+//*****************************************************************************
+//
+// Core initialization
+//
+//*****************************************************************************
 void BSP_init(void){
 
 	// Clock at 80MHz
@@ -45,11 +49,18 @@ void BSP_init(void){
 }
 
 
+/*****************************************************************************
+*
+* Configuration and activation of the I2C 1 peripheral @ 400 kbps
+* PORT A, pin 6 -> SCL  	(clk)
+* PORT A, pin 7 ->	SDA		(data)
+*
+*****************************************************************************/
 uint32_t BSP_InitI2C01(void){
-    //Activation of modules related to I2C1
+    	//Activation of modules related to I2C1
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);        // Enable port B for I2C pin
     SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C1);
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_I2C1)){ // Wait for the I2C0 module to be ready.
+    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_I2C1)){ 	// Wait for the I2C0 module to be ready.
     }
     SysCtlPeripheralReset(SYSCTL_PERIPH_I2C1);
 
@@ -69,11 +80,11 @@ uint32_t BSP_InitI2C01(void){
 }
 
 
-//*****************************************************************************
-//
-// Read the state of the master ad detects errors.
-//
-//*****************************************************************************
+/*****************************************************************************
+*
+* Read the state of the master ad detects errors.
+*
+*****************************************************************************/
 extern uint32_t BSP_u32_MtBusyErrSR( void){
 	while(I2CMasterBusy(I2C1_BASE));									// Waiting for master
 	if(I2CMasterErr(I2C1_BASE) != I2C_MASTER_ERR_NONE){					// A error detected¡¡ stop receiving
@@ -85,56 +96,60 @@ extern uint32_t BSP_u32_MtBusyErrSR( void){
 	return 0;
 }
 
-/*
+/******************************************************************************
+ *
  * Read a specific register on slave device
- */
+ *
+ ******************************************************************************/
 extern uint32_t	BSP_u32_I2CDatRecvSensors(uint8_t slave_addr, uint8_t slave_reg, uint8_t num_data, uint8_t (*ptr_bff)[NULL]){
 	uint8_t idx = 0;
 	// Writing to slave the register to be read
-	I2CMasterSlaveAddrSet(I2C1_BASE, slave_addr, false); 		// Set the slave address to I2CMSA [7:1] and the R/_S  bit[0] to low (Send/transmit)
+	I2CMasterSlaveAddrSet(I2C1_BASE, slave_addr, false); 		// Set the slave address to reg I2CMSA [7:1] and the R/_S  bit[0] to low (Send/transmit)
 	I2CMasterDataPut(I2C1_BASE, slave_reg);						// Specify register to be read
 	I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_SINGLE_SEND);	// Send control byte and register address byte to slave device
 	BSP_u32_MtBusyErrSR();
 
-	I2CMasterSlaveAddrSet(I2C1_BASE, slave_addr, true);				// Set the slave address to I2CMSA [7:1] and the R/_S  bit[0] to high  (Send/transmit)
+	I2CMasterSlaveAddrSet(I2C1_BASE, slave_addr, true);					// Set the slave address to reg I2CMSA [7:1] and the R/_S  bit[0] to high  (Send/transmit)
 	I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_RECEIVE_START);	// Write ---01011 to I2CMCS
 	for(idx = 0 ; idx < num_data; idx++){
-		if(BSP_u32_MtBusyErrSR()){									// Waiting to get the data
-			return 1;											// error detected;
+		if(BSP_u32_MtBusyErrSR()){										// Waiting to get the data
+			return 1;													// error detected;
 		}
-		(*ptr_bff)[idx] = I2CMasterDataGet(I2C1_BASE);		// Return data pulled from the specified register
-		I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_RECEIVE_CONT);	// Write ---0-001 to I2CMCS
+		(*ptr_bff)[idx] = I2CMasterDataGet(I2C1_BASE);					// Return data pulled from the specified register
+		I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_RECEIVE_CONT);	// Write ---0-001 to reg I2CMCS
 	}
 
-	I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_RECEIVE_FINISH);	// Write ---0-001 to I2CMCS
+	I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_RECEIVE_FINISH);	// Write ---0-001 to reg I2CMCS
 	BSP_u32_MtBusyErrSR();
 
 	// not error detected & master free
 	return 0;
 }
 
-/*
+/*******************************************************************************
+ *
  * Write a specific register on slave device
- */
+ *
+ *******************************************************************************/
 extern uint32_t	BSP_u32_I2CDatSendSensors(uint8_t slave_addr, uint8_t slave_reg, uint8_t num_dat, uint8_t (*ptr_bff)[NULL]){
 	uint8_t idx = 0;
 	I2CMasterSlaveAddrSet(I2C1_BASE, slave_addr, false);	// Set the slave address to I2CMSA [7:1] and the R/_S  bit[0] to low (Send/transmit)
 
 	// sending the register address
-	I2CMasterDataPut(I2C1_BASE, slave_reg);							// Write data to I2CMDR
-	I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_SEND_START);	// Write ---0-011 to I2CMCS
+	I2CMasterDataPut(I2C1_BASE, slave_reg);							// Write data to reg I2CMDR
+	I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_SEND_START);	// Write ---0-011 to reg I2CMCS
 	BSP_u32_MtBusyErrSR();
 
 	for(idx = 0; idx < num_dat; idx++){
-		I2CMasterDataPut(I2C1_BASE, (*ptr_bff)[idx]);					// Write data to I2CMDR
-		I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_SEND_CONT);	// Write ---0-001 to I2CMCS
-		if(BSP_u32_MtBusyErrSR()){											// Waiting to get data
+		I2CMasterDataPut(I2C1_BASE, (*ptr_bff)[idx]);					// Write data to reg I2CMDR
+		I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_SEND_CONT);	// Write ---0-001 to reg I2CMCS
+		if(BSP_u32_MtBusyErrSR()){										// Waiting to get data
 			return 1;													// A error de detected
 		}
 
 	}
 
-	I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_SEND_FINISH);	// Write ---0-101 to I2CMCS
+	I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_SEND_FINISH);	// Write ---0-101 to reg I2CMCS
 	BSP_u32_MtBusyErrSR();
 	// not error detected & master free
 	return 0;
