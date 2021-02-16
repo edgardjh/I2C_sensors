@@ -15,6 +15,7 @@
  */
 #define OPT3001_SLV_ADD 0x47
 
+
 /*
  *   Registers addresses
  */
@@ -48,7 +49,7 @@
 #define LP_LSB_512  (0x09 << 12)
 #define LP_LSB_1024 (0x0A << 12)
 #define LP_LSB_2048 (0x0B << 12)
-#define FULLSCALE   (0x0C << 12)
+#define AUTO_FS     (0x0C << 12)
 
 /*
  *   Convertion Time
@@ -80,21 +81,21 @@
  *  Configuration register
  *  R
  */
-#define OVF (0x01 << 7)
+#define CRF (0x01 << 7)
 
 /*
  *  Flag high field
  *  Configuration register
  *  R
  */
-#define FH (0x01 << 6)
+#define FLG_H (0x01 << 6)
 
 /*
  *  Flag low field
  *  Configuration register
  *  R
  */
-#define FH (0x01 << 5)
+#define FLG_L (0x01 << 5)
 
 /*
  *  Latch field
@@ -148,10 +149,10 @@
 //********************************************************************************************//
 
 /* Low Limit Register*/
-void extern GetAmbientLight(*uint_16 raw_data);
-void extern GetManID(*uint_16 ManID);
-void extern GetDeviceID(*uint_16 DevID);
-void extern ConfigSensor();
+//void extern GetAmbientLight(*uint_16 raw_data);
+//void extern GetManID(*uint_16 ManID);
+//void extern GetDeviceID(*uint_16 DevID);
+extern void  ConfigSensor();
 
 
 
